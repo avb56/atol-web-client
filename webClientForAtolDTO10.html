@@ -482,7 +482,7 @@
 			checkNodeInputs = node => Array.from(node.querySelectorAll('[check_it]')).forEach(el => el.dispatchEvent(checkEvent())),
 			checkFails = node => Array.from(node.querySelectorAll('.fail')).find(el => el.offsetParent),
 			showReceiptOptions = (toggle, target) => target.hidden = !toggle.checked,
-			toNum = str => +String(str || 0).replace(/\s/g,'').replace(/(\d+)\D/,'$1.'),
+			toNum = str => +String(str || 0).replace(/\s/g,'').replace(/(\d+)\D/,'$1.').replace(/(\.\d{4})\d+$/,'$1'),
 			setMoment = s => moment.textContent = getDateTime(s).slice(0,-3),
 			stub = er => er ? console.log(er) : null,
 			waitGIF = `<img src='
@@ -545,7 +545,7 @@
 
 			window.onresize = () => {
 				receipt.style.maxHeight = window.innerHeight - mainBtn.offsetHeight - 15 + 'px';
-				if (window.box) boxBody.style.maxHeight = window.innerHeight - 200 + 'px';
+				if (document.getElementById('boxBody')) boxBody.style.maxHeight = window.innerHeight - 200 + 'px';
 			}
 
 			window.onload = function() { var
@@ -670,7 +670,7 @@
 						arr = Array.from(pays.children),
 						paySum = arr.reduce((givenPays, rowPay) => givenPays + toNum(rowPay.sum.value), 0),
 						cashPart = arr.reduce((givenPays, rowPay) => givenPays + (rowPay.type.value == 'cash' ? toNum(rowPay.sum.value) : 0), 0),
-						odd = paySum - sum;
+						odd = +(paySum - sum).toFixed(2);
 
 						if (ev && ev.type == 'change') sumVal.value = formatter.format(toNum(sumVal.value));
 						oddRow.classList[odd > 0 ? 'remove' : 'add']('hidden');
@@ -816,7 +816,7 @@
 					pays.firstElementChild.elements.sum.dispatchEvent(checkEvent());
 					flush(vats);
 
-					for (let vat in vates) if (vates[vat].sum) switch (vat) {
+					for (let vat in vates) if (vates[vat].sum = +vates[vat].sum.toFixed(2)) switch (vat) { // в условии заодно округляем суммы на случай неточных вычислений
 						case 'vat18': addVatRow(vat, vates.vat18.sum + vates.vat20.sum); break;
 						case 'vat20': if (!vates.vat18.sum) addVatRow(vates.vat118.sum ? 'vat18' : vat, vates.vat20.sum); break;
 						case 'vat118': addVatRow(vat, vates.vat118.sum + vates.vat120.sum); break;
@@ -1126,7 +1126,7 @@
 					case 'vat120': tax = 1/6;
 				}
 
-				return tax && paySum ? formatter.format(toNum(paySum) * tax) : '';
+				return tax && paySum ? formatter.format(+toNum(paySum).toFixed(2) * tax) : '';
 			}
 
 			function sendTask(task) { let
