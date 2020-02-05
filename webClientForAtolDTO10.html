@@ -542,11 +542,7 @@
 			' width=80 height=12 alt='Считываем данные...'>`;
 
 			window.onunhandledrejection = ev => ev.reason ? console.log(ev) : null;
-
-			window.onresize = () => {
-				receipt.style.maxHeight = window.innerHeight - mainBtn.offsetHeight - 15 + 'px';
-				if (document.getElementById('boxBody')) boxBody.style.maxHeight = window.innerHeight - 200 + 'px';
-			}
+			window.onresize = () => receipt.style.maxHeight = window.innerHeight - mainBtn.offsetHeight - 15 + 'px';
 
 			window.onload = function() { var
 				operator = { name: shifter.value },
@@ -557,19 +553,12 @@
 				sum = 0;
 
 				fdCopy.onclick = () => sendTask({type: 'printFnDocument', fiscalDocumentNumber: +fdCopyNum.value || fdNom.textContent - 1}).catch(stub);
-
 				shiftState.onclick = setAutoClose;
-
 				shifter.onclick = () => shifter.type = 'text';
-
 				shifter.onblur = () => shifter.type = 'button';
-
 				shifter.onchange = () => operator.name = shifter.value;
-
 				receiptType.onchange = () => receiptType.classList[/Return$/.test(receiptType.value) ? 'add' : 'remove']('warn');
-
 				cashSum.onchange = () => cashSum.value = formatter.format(toNum(cashSum.value));
-
 				webServerURL.onchange = () => webServerURL.value += webServerURL.value.slice(-1) == '/' ? '' : '/';
 
 				cashHas.onclick = cashIn.onclick = cashOut.onclick = ev => {
@@ -623,9 +612,7 @@
 					let row = productBlank.cloneNode(true);
 
 					row.amount.onclick = setAutoClose;
-
 					row.tax.onclick = () => row.tax.old = row.tax.value;
-
 					row.price.onchange = () => row.price.value = formatter.format(toNum(row.price.value));
 
 					row.del.onclick = () => {
@@ -695,7 +682,6 @@
 					}
 
 					sumVal.onclick = setAutoClose;
-
 					pays.appendChild(row);
 					sumVal.dispatchEvent(checkEvent());
 				}
@@ -932,16 +918,19 @@
 				else {
 					document.body.appendChild(boxStore.content);
 					window.box = document.getElementById('box');
-					window.onresize();
+					box.resize = () => boxBody.style.maxHeight = window.innerHeight - 200 + 'px';
 
 					box.close = () => {
 						Array.from(boxFoot).forEach(el => el.hidden = el.name);
+						window.removeEventListener('resize', box.resize);
 						document.body.removeChild(box);
 					}
 				}
 
 				flush(boxBody);
 				boxBody.appendChild(box.querySelector('[content_target="' + type + '"]').content.cloneNode(true));
+				window.addEventListener('resize', box.resize);
+				window.dispatchEvent(new Event('resize'));
 				window[type](args);
 			}
 
@@ -1021,7 +1010,6 @@
 					let row = nonFiscalRowBlank.cloneNode(true);
 					
 					row.delRow.onclick = () => nonFiscalRows.removeChild(row);
-					
 					nonFiscalRows.appendChild(row);
 				}
 				
@@ -1166,7 +1154,7 @@
 					}
 
 					throw er; // Отправляем в reject оставшуюся цепочку, если есть
-				})
+				});
 
 				function reqResult() {
 					reqCount++;
