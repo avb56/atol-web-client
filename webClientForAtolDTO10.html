@@ -469,6 +469,7 @@
 				readFromFR: 'Считать данные с фискального принтера',
 				readingFromFR: 'Считываем данные с фискального принтера...',
 				popUpNote: '\n\nОткрыть детали задания в новой вкладке?',
+				noteWindow: '\n\nДополнительная информация откроется в отдельной вкладке.',
 				noWebSrv: adr => 'Web-сервер не отвечает по адресу: "' + adr + '"\nПроверьте адрес и работу сервера.',
 				doublePos: val => 'Имеется повторяющаяся позиция "' + val + '".\n\nПродолжить ?',
 				showSendTaskDetails: msg => msg + '\n\nПоказать дополнительную информацию ?',
@@ -477,7 +478,7 @@
 					'Установить время на ФР как на ПК? (Время на ПК должно быть правильным!)',
 				failAlert: 'Исправьте данные выделенные красным цветом.\nПодсказка при наведении курсора.'
 			},
-			taskProps = { requestGap: 0.75, retryCount: 5 },
+			taskWaitProps = { requestGap: 0.75, retryCount: 5 },
 			checkEvent = ev => new Event(ev || 'change', {bubbles: true}),
 			checkNodeInputs = node => Array.from(node.querySelectorAll('[check_it]')).forEach(el => el.dispatchEvent(checkEvent())),
 			checkFails = node => Array.from(node.querySelectorAll('.fail')).find(el => el.offsetParent),
@@ -552,14 +553,14 @@
 				vatBlank = vats.removeChild(vats.children[0]),
 				sum = 0;
 
-				fdCopy.onclick = () => sendTask({type: 'printFnDocument', fiscalDocumentNumber: +fdCopyNum.value || fdNom.textContent - 1}).catch(stub);
 				shiftState.onclick = setAutoClose;
 				shifter.onclick = () => shifter.type = 'text';
 				shifter.onblur = () => shifter.type = 'button';
 				shifter.onchange = () => operator.name = shifter.value;
-				receiptType.onchange = () => receiptType.classList[/Return$/.test(receiptType.value) ? 'add' : 'remove']('warn');
 				cashSum.onchange = () => cashSum.value = formatter.format(toNum(cashSum.value));
 				webServerURL.onchange = () => webServerURL.value += webServerURL.value.slice(-1) == '/' ? '' : '/';
+				receiptType.onchange = () => receiptType.classList[/Return$/.test(receiptType.value) ? 'add' : 'remove']('warn');
+				fdCopy.onclick = () => sendTask({type: 'printFnDocument', fiscalDocumentNumber: +fdCopyNum.value || fdNom.textContent - 1}).catch(stub);
 
 				cashHas.onclick = cashIn.onclick = cashOut.onclick = ev => {
 					let name = ev.target.innerHTML, snd = { type: ev.target == cashHas ? 'getCashDrawerStatus' : ev.target.id };
@@ -595,7 +596,8 @@
 				}
 
 				menu.onclick = ev => {
-					if (leftSideBar.style.left == '0px') hideSideBar(); else {
+					if (leftSideBar.style.left == '0px') hideSideBar();
+					else {
 						leftSideBar.style.left = 0;
 						document.addEventListener('click', waitClose, true);
 					}
@@ -743,15 +745,15 @@
 					}, stub)
 				}
 
-				for (let btn of Array.from(document.getElementsByName('reportX'))) btn.onclick = () => sendTask({type: "reportX", operator}).catch(stub);
-				Array.from(productBlank.elements.tax).forEach(tax => vates[tax.value] = {name: tax.text, sum: 0});
-				document.body.addEventListener('change', checkInputsValues);
-				document.body.addEventListener('input', checkInputsValues);
-				checkNodeInputs(receipt);
-				shifterVatin.onchange();
-				addProduct.onclick();
 				readFR();
 				window.onresize();
+				shifterVatin.onchange();
+				checkNodeInputs(receipt);
+				document.body.addEventListener('input', checkInputsValues);
+				document.body.addEventListener('change', checkInputsValues);
+				Array.from(productBlank.elements.tax).forEach(tax => vates[tax.value] = {name: tax.text, sum: 0});
+				for (let btn of Array.from(document.getElementsByName('reportX'))) btn.onclick = () => sendTask({type: "reportX", operator}).catch(stub);
+				addProduct.onclick();
 
 				function checkShift() { sendTask({type: "getShiftStatus"}).then(handleShift, stub); ++fdNom.textContent; }
 
@@ -1070,16 +1072,16 @@
 
 			function webSrvSettings() {
 				boxBody.querySelector('[name="sendTaskSettingsSave"]').onclick = () => {
-					taskProps.requestGap = toNum(boxBody.querySelector('[name="sendTaskReqGap"]').value);
-					taskProps.retryCount = toNum(boxBody.querySelector('[name="sendTaskRetryCount"]').value);
+					taskWaitProps.requestGap = toNum(boxBody.querySelector('[name="sendTaskReqGap"]').value);
+					taskWaitProps.retryCount = toNum(boxBody.querySelector('[name="sendTaskRetryCount"]').value);
 					alert('Изменения сохранены до перезагрузки страницы');
 				}
 
 				boxHead.textContent = 'Настройка Web-сервера';
 				boxBody.firstElementChild.src = webServerURL.value + "settings";
 				boxBody.firstElementChild.height = window.innerHeight - 300 + 'px';
-				boxBody.querySelector('[name="sendTaskReqGap"]').value = taskProps.requestGap;
-				boxBody.querySelector('[name="sendTaskRetryCount"]').value = taskProps.retryCount;
+				boxBody.querySelector('[name="sendTaskReqGap"]').value = taskWaitProps.requestGap;
+				boxBody.querySelector('[name="sendTaskRetryCount"]').value = taskWaitProps.retryCount;
 				boxFoot.popUp.hidden = 0;
 				boxFoot.popUp.onclick = () => window.open(webServerURL.value + "settings");
 			}
@@ -1125,55 +1127,38 @@
 				},
 				url = webServerURL.value + 'requests',
 				reqCount = 0,
-				mainBtnTxt = mainBtn.textContent;
+				mainBtnLastTxt = mainBtn.textContent;
 
-				mainBtn.textContent = mainBtnTxt ? txt.taskSended : txt.readingFromFR;
+				mainBtn.textContent = mainBtnLastTxt ? txt.taskSended : txt.readingFromFR;
 				mainBtn.disabled = 1;
 
 				return fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(msg)})
 				.then(resSnd => { if (resSnd.status != 201) throw resSnd; }).then(reqResult).then(readyRes => {
 					mainBtn.disabled = 0;
-					mainBtn.textContent = mainBtnTxt;
+					mainBtn.textContent = mainBtnLastTxt;
 					if (electronicalReceipt.value && msg.request[0].items) alert(txt.fiscalSuccess);
 					return readyRes;
 				}, er => { // finally is not a function in WinXP (Chrome/49.0)
 					mainBtn.disabled = 0;
 					mainBtn.textContent = txt.readFromFR;
 					mainBtn.onclick = readFR;
-
-					if (er instanceof SendTaskError) {
-						if (confirm(txt.showSendTaskDetails(er.message))) boxShow('sendTaskDetails', { msg, er });
-					} else switch (er.message) {
-						case 'Failed to fetch': // Chrome
-						case 'NetworkError when attempting to fetch resource.': // Firefox
-						case 'Не удалось извлечь': // Edge
-							alert(txt.noWebSrv(webServerURL.value));
-						break;
-
-						default: alert(er.message);
-					}
-
+					alert(er.message + txt.noteWindow);
+					window.open().document.write(er.stack + '<br><br>Запрос:<pre>' + JSON.stringify(msg, '', 2) + '</pre>Результат:<pre>' + JSON.stringify(er.cause, '', 2) + '</pre>');
 					throw er; // Отправляем в reject оставшуюся цепочку, если есть
 				});
 
 				function reqResult() {
 					reqCount++;
-					return fetch(url + '/' + msg.uuid).then(res => res.json()).then(resReq => {
-						let lastRes = resReq.results[resReq.results.length - 1]; // resReq.results.slice(-1).pop()
-
-						switch (lastRes.status) {
-							case 'ready': return resReq.results;
-							case 'inProgress':
-							case 'wait':
-								if (reqCount > taskProps.retryCount && confirm(txt.longWait)) throw new SendTaskError(txt.frConnect, resReq);
-								if (reqCount > taskProps.retryCount) reqCount = 0;
-								return new Promise(resolve => setTimeout(() => resolve(reqResult()), taskProps.requestGap * 1000));
-							case 'error': throw new SendTaskError(lastRes.errorDescription, resReq);
-							case 'interrupted':
-							case 'blocked':
-							case 'canceled':
-							default: throw new SendTaskError(lastRes.status, resReq);
+					return fetch(url + '/' + msg.uuid)
+					.then(res => {if (res.ok) return res.json(); else throw new Error(res.url + ' ' + res.statusText + ', Status: ' + res.status)})
+					.then(resReq => {
+						if (resReq.results.find(res => res.status == 'inProgress' || res.status == 'wait')) {
+							if (reqCount > taskWaitProps.retryCount) if (confirm(txt.longWait)) throw new SendTaskError(txt.frConnect, resReq); else reqCount = 0;
+							return new Promise(resolve => setTimeout(() => resolve(reqResult()), taskWaitProps.requestGap * 1000));
 						}
+						if (resReq.results.filter(res => res.status == 'ready').length == resReq.results.length) return resReq.results;
+						let resErr = resReq.results.find(res => res.status == 'error');
+						throw new SendTaskError(resErr ? resErr.errorDescription : resReq.results[0].status, resReq);
 					});
 				}
 			}
@@ -1203,7 +1188,7 @@
 					<span>Кассир </span>
 					<input type="button" id='shifter' class='viewEdit viewBtn' value='Администратор' placeholder='Должность Ф.И.О. кассира' style='min-width: 90px;' size=32 check_it>
 					<span id ='shifterVatinLabel'>ИНН</span>
-					<input id='shifterVatin' class='viewEdit' value='' placeholder='ИНН Кассира' size=11 title='ИНН физического лица состоит из 12 цифр' check_it='^\d{12}$'>
+					<input id='shifterVatin' class='viewEdit' value='' placeholder='ИНН Кассира' size=12 title='ИНН физического лица состоит из 12 цифр' check_it='^\d{12}$'>
 				</div>
 				<div class="crc_row crc_row__inline">
 					<select id='electronicalReceipt' class='viewEdit' style="width: 70px;">
