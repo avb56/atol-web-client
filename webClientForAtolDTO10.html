@@ -745,7 +745,8 @@
 					}, stub)
 				}
 
-				readFR();
+				//readFR();
+				mainBtn.onclick = readFR;
 				window.onresize();
 				shifterVatin.onchange();
 				checkNodeInputs(receipt);
@@ -1127,12 +1128,13 @@
 				},
 				url = webServerURL.value + 'requests',
 				reqCount = 0,
-				mainBtnLastTxt = mainBtn.textContent;
+				mainBtnLastTxt = mainBtn.textContent,
+				headers = {'Content-Type': 'application/json', Authorization: 'Basic ' + btoa(webServerUser.value + ':' + webServerPass.value)};
 
 				mainBtn.textContent = mainBtnLastTxt ? txt.taskSended : txt.readingFromFR;
 				mainBtn.disabled = 1;
 
-				return fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(msg)})
+				return fetch(url, {method: 'POST', headers, body: JSON.stringify(msg)})
 				.then(resSnd => { if (resSnd.status != 201) throw resSnd; }).then(reqResult).then(readyRes => {
 					mainBtn.disabled = 0;
 					mainBtn.textContent = mainBtnLastTxt;
@@ -1142,6 +1144,7 @@
 					mainBtn.disabled = 0;
 					mainBtn.textContent = txt.readFromFR;
 					mainBtn.onclick = readFR;
+					if (er.status && er.status == 401) return alert('Не верный логин и/или пароль Web-сервера');
 					alert(er.message + txt.noteWindow);
 					window.open().document.write(er.stack + '<br><br>Запрос:<pre>' + JSON.stringify(msg, '', 2) + '</pre>Результат:<pre>' + JSON.stringify(er.cause, '', 2) + '</pre>');
 					throw er; // Отправляем в reject оставшуюся цепочку, если есть
@@ -1149,7 +1152,7 @@
 
 				function reqResult() {
 					reqCount++;
-					return fetch(url + '/' + msg.uuid)
+					return fetch(url + '/' + msg.uuid, {headers})
 					.then(res => {if (res.ok) return res.json(); else throw new Error(res.url + ' ' + res.statusText + ', Status: ' + res.status)})
 					.then(resReq => {
 						if (resReq.results.find(res => res.status == 'inProgress' || res.status == 'wait')) {
@@ -1297,11 +1300,13 @@
 										<option value="none">Без НДС</option>
 										<option value="vat0">НДС 0%</option>
 										<option value="vat10">НДС 10%</option>
-										<option value="vat18" title="В ОФД будет название 20%">НДС 18%</option>
-										<option value="vat20">НДС 20%</option>
 										<option value="vat110">НДС 10/110</option>
-										<option value="vat118">НДС 18/118</option>
+										<option value="vat20">НДС 20%</option>
 										<option value="vat120">НДС 20/120</option>
+										<option value="vat5">НДС 5%</option>
+										<option value="vat105">НДС 5/105</option>
+										<option value="vat7">НДС 7%</option>
+										<option value="vat107">НДС 7/107</option>
 									</select>
 								</div>
 							</div>
@@ -1403,7 +1408,7 @@
 			</div>
 		</div>
 		<div>
-			<button id='mainBtn'></button>
+			<button id='mainBtn'>Считать данные с фискального принтера</button>
 		</div>
 		<div id="leftSideBar" class='sideTabs' style='width: 400px; left: -400px;'>
 			<div id='menu' class='menu'></div>
@@ -1411,6 +1416,8 @@
 				<div class='inBar'>
 					<label>Web-сервер</label>
 					<input id='webServerURL' value='http://127.0.0.1:16732/'>
+					<input id='webServerUser' class='right' style="width: 49%;" placeholder='Пользователь' value=''>
+					<input id='webServerPass' class='right' style="width: 49%;" placeholder='Пароль' type='password' value=''>
 					<button class='button' style="width: 49%;" onclick="boxShow('webSrvInfo')">Информация</button>
 					<button class='button' style="width: 49%;" onclick="boxShow('webSrvSettings')">Настройки</button>
 					<button class='button' onclick="boxShow('overView')">Обзор возможностей</button>
