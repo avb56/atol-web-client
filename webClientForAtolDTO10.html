@@ -1129,7 +1129,9 @@
 				url = webServerURL.value + 'requests',
 				reqCount = 0,
 				mainBtnLastTxt = mainBtn.textContent,
-				headers = {'Content-Type': 'application/json', Authorization: 'Basic ' + btoa(webServerUser.value + ':' + webServerPass.value)};
+				authStr = webServerUser.value + ':' + webServerPass.value;
+				headers = {'Content-Type': 'application/json' };
+				if (authStr.length > 1) headers.Authorization = 'Basic ' + btoa(authStr);
 
 				mainBtn.textContent = mainBtnLastTxt ? txt.taskSended : txt.readingFromFR;
 				mainBtn.disabled = 1;
