@@ -6,11 +6,15 @@
 		<script>
 			const
 			priceArr = [
-				'ЦПГ-поршневая группа',
-				'Поршень',
-				'ATV машинокомплект 250 см3'
+				'Арендная плата',
+				'Базовая часть арендной платы',
+				'Гарантийная сумма',
+				'Неустойка (штрафы, пени)',
+				'Обеспечительный платёж',
+				'Переменная часть арендной платы',
+				'Эксплуатационные услуги'
 			],
-      formatter = new Intl.NumberFormat('ru', {minimumFractionDigits: 2, maximumFractionDigits: 2}),
+			formatter = new Intl.NumberFormat('ru', {minimumFractionDigits: 2, maximumFractionDigits: 2}),
 			txt = {
 				printReceipt: 'Напечатать фискальный чек',
 				fiscalReceipt: 'Фискализировать чек (без печати)',
@@ -708,12 +712,15 @@
 				},
 				url = webServerURL.value + 'requests',
 				reqCount = 0,
-				mainBtnLastTxt = mainBtn.textContent;
+				mainBtnLastTxt = mainBtn.textContent
+				authStr = webServerUser.value + ':' + webServerPass.value;
+				headers = {'Content-Type': 'application/json' };
+				if (authStr.length > 1) headers.Authorization = 'Basic ' + btoa(authStr);
 
 				mainBtn.textContent = mainBtnLastTxt ? txt.taskSended : txt.readingFromFR;
 				mainBtn.disabled = 1;
 
-				return fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(msg)})
+				return fetch(url, {method: 'POST', headers, body: JSON.stringify(msg)})
 				.then(resSnd => { if (resSnd.status != 201) throw resSnd; }).then(reqResult).then(readyRes => {
 					mainBtn.disabled = 0;
 					mainBtn.textContent = mainBtnLastTxt;
@@ -730,7 +737,7 @@
 
 				function reqResult() {
 					reqCount++;
-					return fetch(url + '/' + msg.uuid)
+					return fetch(url + '/' + msg.uuid, {headers})
 					.then(res => {if (res.ok) return res.json(); else throw new Error(res.url + ' ' + res.statusText + ', Status: ' + res.status)})
 					.then(resReq => {
 						if (resReq.results.find(res => res.status == 'inProgress' || res.status == 'wait')) {
@@ -1332,7 +1339,7 @@
 									<select class='viewEdit' name='paymentObject' style='width: 55px; margin-right: 0;'>
 										<option value="commodity">Товар</option>
 										<option value="job">Работа</option>
-										<option value="service">Услуга</option>
+										<option value="service" selected>Услуга</option>
 										<option value="excise" disabled>Подакцизный товар</option>
 										<option value="gamblingBet">Ставка азартной игры</option>
 										<option value="gamblingPrize">Выигрыш азартной игры</option>
@@ -1370,14 +1377,16 @@
 									<input type="button" class="viewEdit viewBtn" name="amount" value=''>
 									<div class='popUpList' hidden>
 										<select name='tax'>
-											<option value="none">Без НДС</option>
-											<option value="vat0">НДС 0%</option>
-											<option value="vat10">НДС 10%</option>
-											<option value="vat18" title="В ОФД будет название 20%">НДС 18%</option>
-											<option value="vat20">НДС 20%</option>
-											<option value="vat110">НДС 10/110</option>
-											<option value="vat118">НДС 18/118</option>
-											<option value="vat120">НДС 20/120</option>
+										<option value="none">Без НДС</option>
+										<option value="vat0">НДС 0%</option>
+										<option value="vat10">НДС 10%</option>
+										<option value="vat110">НДС 10/110</option>
+										<option value="vat20">НДС 20%</option>
+										<option value="vat120">НДС 20/120</option>
+										<option value="vat5">НДС 5%</option>
+										<option value="vat105">НДС 5/105</option>
+										<option value="vat7">НДС 7%</option>
+										<option value="vat107">НДС 7/107</option>
 										</select>
 									</div>
 								</div>
@@ -1445,7 +1454,7 @@
 				<div class="crc_block crc_block__informationForConnection">
 					<div class="crc_row">
 						<span class="crc_title">Сайт ФНС</span>
-						<span class="crc_value" id="fnsUrl">www.nalog.ru</span>
+						<span class="crc_value" id="fnsUrl">www.nalog.gov.ru</span>
 						<span class='hidden setReceiptOptions'>
 							<label><input type='checkbox' onclick='showReceiptOptions(this, additionalAttributeRow)'>Указать дополнительный реквизит</label>
 						</span>
@@ -1508,7 +1517,9 @@
 				</div>
 				<div class='inBar'>
 					<label>Web-сервер</label>
-					<input id='webServerURL' value='http://127.0.0.1:16732/'>
+					<input id='webServerURL' value='http://127.0.0.1:16732/api/v2/'>
+					<input id='webServerUser' class='right' style="width: 49%;" placeholder='Пользователь' value=''>
+					<input id='webServerPass' class='right' style="width: 49%;" placeholder='Пароль' type='password' value=''>
 					<button class='button' style="width: 49%;" onclick="boxShow('webSrvInfo')">Информация</button>
 					<button class='button' style="width: 49%;" onclick="boxShow('webSrvSettings')">Настройки</button>
 				</div>
@@ -1579,6 +1590,10 @@
 										<option value="vat20">НДС 20%</option>
 										<option value="vat110">НДС 10/110</option>
 										<option value="vat120">НДС 20/120</option>
+										<option value="vat5">НДС 5%</option>
+										<option value="vat105">НДС 5/105</option>
+										<option value="vat7">НДС 7%</option>
+										<option value="vat107">НДС 7/107</option>
 									</select>
 									<input name='taxSum' placeholder="Сумма ставки" check_it='>=0'>
 									<button class="del" name='delRow' title="Удалить строку"></button>

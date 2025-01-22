@@ -1417,7 +1417,7 @@
 			<div class='sideBarBody'>
 				<div class='inBar'>
 					<label>Web-сервер</label>
-					<input id='webServerURL' value='http://127.0.0.1:16732/'>
+					<input id='webServerURL' value='http://127.0.0.1:16732/api/v2/'>
 					<input id='webServerUser' class='right' style="width: 49%;" placeholder='Пользователь' value=''>
 					<input id='webServerPass' class='right' style="width: 49%;" placeholder='Пароль' type='password' value=''>
 					<button class='button' style="width: 49%;" onclick="boxShow('webSrvInfo')">Информация</button>
@@ -1511,6 +1511,10 @@
 										<option value="vat20">НДС 20%</option>
 										<option value="vat110">НДС 10/110</option>
 										<option value="vat120">НДС 20/120</option>
+										<option value="vat5">НДС 5%</option>
+										<option value="vat105">НДС 5/105</option>
+										<option value="vat7">НДС 7%</option>
+										<option value="vat107">НДС 7/107</option>
 									</select>
 									<input name='taxSum' placeholder="Сумма ставки" check_it='>=0'>
 									<button class="del" name='delRow' title="Удалить строку"></button>
